@@ -24,11 +24,11 @@ public class Scraper {
     logger.warn("Recuperando licitaciones");
     JSONArray procesos = licitaciones.recuperarLicitaciones(Parametros.builder()
             .put("fecha_desde", "2010-01-01")
-            .put("fecha_hasta", "2010-07-01")
+            .put("fecha_hasta", "2010-01-31")
             .put("tipo_fecha", "ENT")
-            .put("tipo_licitacion", "tradicional")
-            .put("offset", "0")
-            .put("limit", "2"));
+            .put("tipo_licitacion", "tradicional"));
+            //.put("offset", "0")
+            //.put("limit", "2"));
 
     for (int i = 0; i < procesos.length(); i++) {
 
