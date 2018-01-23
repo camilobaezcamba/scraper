@@ -27,6 +27,7 @@ public class OCDSService extends BaseService{
         recordPackageReq = service.recordPackage(id);
 
         Response res = recordPackageReq.execute();
+        //logger.error(res.message());
 
         if (res.body() != null) {
           recordPackage = res.body().toString();
