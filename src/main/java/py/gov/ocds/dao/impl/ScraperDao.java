@@ -12,6 +12,9 @@ import org.json.JSONObject;
 import py.gov.ocds.dao.interfaz.Dao;
 import py.gov.ocds.factory.MongoClientFactory;
 
+import java.io.FileWriter;
+import java.io.IOException;
+
 /**
  * Created by diego on 29/04/17.
  */
@@ -53,4 +56,17 @@ public class ScraperDao implements Dao {
         colllection.updateOne(filter, update, options);
         mongo.close();
     }
+
+  public void saveFile(String id, String record) {
+
+
+    try (FileWriter file = new FileWriter("json/"+id+".json")) {
+      JSONObject recordPackage = new JSONObject(record);
+      file.write(record);
+      System.out.println("Successfully Copied JSON Object to File...");
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+  }
+
 }

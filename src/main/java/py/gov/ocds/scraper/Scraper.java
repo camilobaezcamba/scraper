@@ -79,6 +79,7 @@ public class Scraper {
             .put("tipo_fecha", "ENT")
             .put("tipo_licitacion", "tradicional")
             .put("offset", "0")
+            .put("show_pagination", "false")
             .put("limit", cantidadLicitaciones));
 
     ocds.setSleep(sleepReintento);
@@ -112,8 +113,6 @@ public class Scraper {
         start += cant;
         end += cant;
       }
-
-
       fin = System.currentTimeMillis();
     }
 

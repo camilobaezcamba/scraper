@@ -18,14 +18,18 @@ public class AutenticacionService extends BaseService {
 
   AutenticacionServiceInterface service = retrofit.create(AutenticacionServiceInterface.class);
 
+  String accessToken = null;
   public String accessToken() {
-
+    if(accessToken != null){
+      return accessToken;
+    }
     try {
 
       Call<String> autenticacion = service.accesToken("Basic " + Aplicacion.REQUEST_TOKEN);
       JSONObject token = new JSONObject(autenticacion.execute().body().toString());
-
-      return token.getString("access_token");
+      System.out.println(this);
+      accessToken = "Bearer " + token.getString("access_token");
+      return accessToken;
 
     } catch (IOException e) {
       logger.error("Ocurrio un error en el servicio de autorizacion",e);
