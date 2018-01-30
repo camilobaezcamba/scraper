@@ -28,7 +28,7 @@ public class ScraperDao implements Dao {
 
         JSONObject documento = new JSONObject();
         documento.put("_id", id);
-        documento.put("record_package", recordPackage);
+        documento.put("compiledRelease", recordPackage);
 
         return Document.parse(documento.toString());
     }

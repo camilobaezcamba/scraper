@@ -15,6 +15,8 @@ public class OCDSService extends BaseService{
 
   OCDSServiceInterface service = retrofit.create(OCDSServiceInterface.class);
 
+  private int sleep = 0;
+
   public String recordPackage(String id) {
     String recordPackage = null;
     try {
@@ -22,7 +24,15 @@ public class OCDSService extends BaseService{
       Call<String> recordPackageReq = null;
       Integer intentos = 0;
       do {
-
+        if(intentos > 0){
+          //Espera por cada reintento
+          logger.error("Reintentando {}. Intento: {}", id, intentos);
+          if(getSleep() > 0){
+            int reintentarEn = getSleep() + intentos * (100 + (int)(Math.random() * ((1000 - 100) + 1)));
+            logger.error("Reintentando {}. En: {} seg.", id, reintentarEn);
+            Thread.sleep(reintentarEn);
+          }
+        }
         intentos++;
         recordPackageReq = service.recordPackage(id);
 
@@ -50,5 +60,12 @@ public class OCDSService extends BaseService{
     return recordPackage;
   }
 
+  public int getSleep() {
+    return sleep;
+  }
+
+  public void setSleep(int sleep) {
+    this.sleep = sleep;
+  }
 
 }
