@@ -1,9 +1,6 @@
-package py.gov.ocds.scraper; /**
- * Created by diego on 03/04/17.
- */
+package py.gov.ocds.scraper;
 
 import org.json.JSONArray;
-
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 import py.gov.ocds.dao.interfaz.Dao;
@@ -16,33 +13,55 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * Created by diego on 03/04/17.
+ */
 public class Scraper {
 
   private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Scraper.class);
-  static Logger root = (Logger) LoggerFactory.getLogger("org.mongodb.driver");
+  private static Logger root = (Logger) LoggerFactory.getLogger("org.mongodb.driver");
   static {
     root.setLevel(ch.qos.logback.classic.Level.ERROR);
   }
-  static List<Thread> hilos = new ArrayList<>();
+  private static List<Thread> hilos = new ArrayList<>();
 
-  static boolean asynkMode = true;
-  static int sleep = 0;
-  static int sleepReintento = 3000;
-  static ExecutorService es;
-  static String cantidadLicitaciones = "10";
+  private static final boolean asynkMode = true;
+  private static final int sleep = 0;
+  private static final int sleepReintento = 3000;
+  private static ExecutorService es;
+  private static final String cantidadLicitaciones = "10";
+  private static final String fechaDesde = "2016-01-01";
+  private static final String fechaHasta = "2016-01-31";
 
-  public void asynkSaveRecord(int finalI, JSONArray procesos, Dao dao, OCDSService ocds) throws InterruptedException {
+  /**
+   * Método asincrono para obtener un compiledRelease. Solamente se crea el hilo y es agregado al listado de hilos, deben ser iniciados manualmente
+   * @param finalI
+   * @param procesos
+   * @param dao
+   * @param ocds
+   * @throws InterruptedException
+   */
+  private void asynkSaveRecord(int finalI, JSONArray procesos, Dao dao, OCDSService ocds) throws InterruptedException {
     Thread hilo = new Thread(() -> saveRecord(finalI, procesos, dao, ocds));
     hilos.add(hilo);
   }
 
-  public void normalSaveRecord(int finalI, JSONArray procesos, Dao dao, OCDSService ocds) throws InterruptedException {
+  /**
+   * Metodo sincrono para obtener un compiledRelease.
+   * @param finalI
+   * @param procesos
+   * @param dao
+   * @param ocds
+   * @throws InterruptedException
+   */
+  private void normalSaveRecord(int finalI, JSONArray procesos, Dao dao, OCDSService ocds) throws InterruptedException {
     saveRecord(finalI, procesos, dao, ocds);
     if(sleep > 0)
       Thread.sleep(sleep);
   }
 
-  public void saveRecord(int finalI, JSONArray procesos, Dao dao, OCDSService ocds){
+  //Obtiene un compiledRelease y lo almacen en la base de datos
+  private void saveRecord(int finalI, JSONArray procesos, Dao dao, OCDSService ocds){
       Long id_llamado = procesos.getJSONObject(finalI).getLong("id_llamado");
     String record = ocds.recordPackage(id_llamado.toString());
       if(record == null){
@@ -60,7 +79,7 @@ public class Scraper {
           guardar = true;
         }
       }
-      if (guardar) {
+      if (guardar && compiledRelease != null) {
         logger.debug("Datos guardados: {}", id_llamado);
         dao.guardar(id_llamado.toString(), compiledRelease.toString());
       }
@@ -74,8 +93,8 @@ public class Scraper {
 
     logger.warn("Recuperando licitaciones");
     JSONArray procesos = licitaciones.recuperarLicitaciones(Parametros.builder()
-            .put("fecha_desde", "2016-01-01")
-            .put("fecha_hasta", "2016-01-31")
+            .put("fecha_desde", fechaDesde)
+            .put("fecha_hasta", fechaHasta)
             .put("tipo_fecha", "ENT")
             .put("tipo_licitacion", "tradicional")
             .put("offset", "0")
@@ -84,38 +103,41 @@ public class Scraper {
 
     ocds.setSleep(sleepReintento);
     long inicio = System.currentTimeMillis();
+    long fin;
+
     if(asynkMode){
       for (int i = 0; i < procesos.length(); i++) {
         asynkSaveRecord(i, procesos, dao, ocds);
       }
-    } else{
-      for (int i = 0; i < procesos.length(); i++) {
-        normalSaveRecord(i, procesos, dao, ocds);
-      }
-    }
-    long fin = System.currentTimeMillis();;
-    if(asynkMode){
       int cant = 10;
       int start = 0;
       int end = cant;
 
+      //Lanzar 'cant' hilos y esperar la respuesta de todos para volver a lanzar los siguientes
       while(hilos.size() >= end){
         System.out.println("probando del " + start + " al " + end);
         List<Thread> subLista = hilos.subList(start, end);
-        for(int i = 0; subLista.size() > i; i++) {
-          subLista.get(i).start();
+
+        //Se lanzan los hilos
+        for (Thread aSubLista : subLista) {
+          aSubLista.start();
         }
 
-        for(int i = 0; subLista.size() > i; i++) {
-          subLista.get(i).join();
+        //Se espera la finalizacion de los hilos
+        for (Thread aSubLista : subLista) {
+          aSubLista.join();
         }
 
         start += cant;
         end += cant;
       }
-      fin = System.currentTimeMillis();
+      fin = System.currentTimeMillis();;
+    } else{
+      for (int i = 0; i < procesos.length(); i++) {
+        normalSaveRecord(i, procesos, dao, ocds);
+      }
+      fin = System.currentTimeMillis();;
     }
-
     System.out.println("Tiempo de ejecución: " + (fin - inicio) / 1000 + " seg.");
   }
 }

@@ -1,5 +1,8 @@
 package py.gov.ocds.dao.interfaz;
 
+import com.mongodb.client.FindIterable;
+import org.bson.Document;
+
 /**
  * Created by diego on 06/05/17.
  */
@@ -12,4 +15,5 @@ public interface Dao {
    */
   void guardar(String id, String record);
   void saveFile(String id, String record);
+  FindIterable<Document> getAll();
 }

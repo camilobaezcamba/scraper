@@ -2,7 +2,6 @@ package py.gov.ocds.service.impl;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import py.gov.ocds.service.interfaz.AutenticacionServiceInterface;
 import py.gov.ocds.service.interfaz.OCDSServiceInterface;
 import retrofit2.Call;
 import retrofit2.Response;
@@ -14,12 +13,12 @@ public class OCDSService extends BaseService{
 
   private static final Logger logger = LoggerFactory.getLogger(OCDSService.class);
 
-  OCDSServiceInterface service = retrofit.create(OCDSServiceInterface.class);
+  private OCDSServiceInterface service = retrofit.create(OCDSServiceInterface.class);
 
   private int sleep = 0;
 
-  AutenticacionService authService = new AutenticacionService();
-  String token = authService.accessToken();
+  private AutenticacionService authService = new AutenticacionService();
+  private String token = authService.accessToken();
 
   public String recordPackage(String id) {
     String recordPackage = null;
@@ -63,7 +62,7 @@ public class OCDSService extends BaseService{
     return recordPackage;
   }
 
-  public int getSleep() {
+  private int getSleep() {
     return sleep;
   }
 

@@ -1,6 +1,7 @@
 package py.gov.ocds.dao.impl;
 
 import com.mongodb.*;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -12,13 +13,20 @@ import org.json.JSONObject;
 import py.gov.ocds.dao.interfaz.Dao;
 import py.gov.ocds.factory.MongoClientFactory;
 
+import javax.annotation.PreDestroy;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by diego on 29/04/17.
  */
 public class ScraperDao implements Dao {
+
+    MongoClient mongo = MongoClientFactory.getMongoClient();
+    MongoDatabase dbManager = mongo.getDatabase("opendata");
+    MongoCollection<Document> collection = dbManager.getCollection("ocds");
 
     public void guardar(String id, String record) {
         Document doc = crearDocumento(id, record);
@@ -57,16 +65,29 @@ public class ScraperDao implements Dao {
         mongo.close();
     }
 
-  public void saveFile(String id, String record) {
-
-
-    try (FileWriter file = new FileWriter("json/"+id+".json")) {
-      JSONObject recordPackage = new JSONObject(record);
-      file.write(record);
-      System.out.println("Successfully Copied JSON Object to File...");
-    } catch (IOException e) {
-      e.printStackTrace();
+    public void saveFile(String id, String record) {
+        try (FileWriter file = new FileWriter("json/"+id+".json")) {
+            JSONObject recordPackage = new JSONObject(record);
+            file.write(record);
+            System.out.println("Successfully Copied JSON Object to File...");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-  }
 
+    public FindIterable<Document> getAll(){
+        FindIterable<Document> documents = collection.find();
+        //mongo.close();
+        return documents;
+    }
+
+    public List<Document> getAllDocuments(){
+        return getAll().into(new ArrayList<>());
+    }
+
+    @PreDestroy
+    public void destroy(){
+        System.out.println("cerrando conexion");
+        mongo.close();
+    }
 }

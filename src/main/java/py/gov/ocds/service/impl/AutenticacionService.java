@@ -16,9 +16,9 @@ public class AutenticacionService extends BaseService {
 
   private static final Logger logger = LoggerFactory.getLogger(AutenticacionService.class);
 
-  AutenticacionServiceInterface service = retrofit.create(AutenticacionServiceInterface.class);
+  private AutenticacionServiceInterface service = retrofit.create(AutenticacionServiceInterface.class);
 
-  String accessToken = null;
+  private String accessToken = null;
   public String accessToken() {
     if(accessToken != null){
       return accessToken;
@@ -26,7 +26,7 @@ public class AutenticacionService extends BaseService {
     try {
 
       Call<String> autenticacion = service.accesToken("Basic " + Aplicacion.REQUEST_TOKEN);
-      JSONObject token = new JSONObject(autenticacion.execute().body().toString());
+      JSONObject token = new JSONObject(autenticacion.execute().body());
       System.out.println(this);
       accessToken = "Bearer " + token.getString("access_token");
       return accessToken;
