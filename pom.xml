@@ -89,6 +89,13 @@
       <artifactId>spring-core</artifactId>
       <version>4.3.7.RELEASE</version>
     </dependency>
+
+    <dependency>
+      <groupId>org.apache.jena</groupId>
+      <artifactId>apache-jena-libs</artifactId>
+      <type>pom</type>
+      <version>3.6.0</version>
+    </dependency>
   </dependencies>
 
 </project>

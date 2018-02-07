@@ -8,7 +8,6 @@ import py.gov.ocds.dao.impl.ScraperDao;
 import py.gov.ocds.service.impl.LicitacionesService;
 import py.gov.ocds.service.impl.OCDSService;
 import ch.qos.logback.classic.Logger;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
