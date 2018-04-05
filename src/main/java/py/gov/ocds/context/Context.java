@@ -2,10 +2,6 @@ package py.gov.ocds.context;
 
 import org.apache.commons.text.WordUtils;
 import org.bson.Document;
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -30,30 +26,40 @@ public class Context {
         configMapping();
     }
 
-    public void addContext(JSONObject ocdsObject, String nombrePropiedad){
-        String contextName = map.get(nombrePropiedad);
-        if(contextName != null){
-            ocdsObject.put("@context", "http://girolabs.com.py/ocds/context-" + contextName + ".json");
-            ocdsObject.put("@type", capitalize(contextName));
-            String id = getId(ocdsObject, nombrePropiedad);
-            if(!id.isEmpty()){
-                ocdsObject.put("@id", id);
-                cantInstancias++;
-            }else{
-                cantBlankNodes++;
-            }
+    //Arreglar los codelist
+    private void procesarCodelist(Document ocdsObject, String nombrePropiedad, String property){
+        if((nombrePropiedad.equals("tender")
+                || nombrePropiedad.matches("contracts?")
+                || nombrePropiedad.matches("awards?"))
+                && property.equals("status")){
+            String valor = ocdsObject.getString("status");
+            ocdsObject.put("status", "http://purl.org/onto-ocds/ocds#"+map.get(nombrePropiedad)+"Status" + WordUtils.capitalizeFully(valor));
         }
+    }
 
-        for(String property: ocdsObject.keySet()){
-            //por el momento no manejar arrays
-            if(ocdsObject.get(property) instanceof JSONObject)
-                addContext(ocdsObject.getJSONObject(property), property);
-            else if(ocdsObject.get(property) instanceof JSONArray){
-                JSONArray array = ocdsObject.getJSONArray(property);
-                for (Object item : array) {
-                    if (item instanceof JSONObject)
-                        addContext((JSONObject) item, property);
+    //Arregla los items, id
+    private void procesarItems(Document ocdsObject, String nombrePropiedad, String property){
+        String urlItem = "http://www.contrataciones.gov.py:4443/datos/api/v2/doc/item/";
+        if((nombrePropiedad.equals("lots")
+                || nombrePropiedad.equals("tender")
+                || nombrePropiedad.equals("contracts"))
+                && property.equals("items")){
+            ArrayList array = (ArrayList) ocdsObject.get(property);
+
+            ArrayList<String> itemArray = new ArrayList<>();
+            for (Object item : array) {
+                //Contract.items[{}, {}, ...]
+                if (item instanceof Document) {
+                    Document itemDocument = ((Document) item);
+                    String valor = itemDocument.getString("id");
+                    itemDocument.put("id", urlItem + valor);
+                }else if (item instanceof String) {//Lots.items["", "", ...]
+                    itemArray.add(urlItem + item);
                 }
+            }
+
+            if(!itemArray.isEmpty()){
+                ocdsObject.put(property, itemArray);
             }
         }
     }
@@ -73,15 +79,8 @@ public class Context {
         }
 
         for(String property: ocdsObject.keySet()){
-            //Arreglar los codelist
-            if((nombrePropiedad.equals("tender")
-                    || nombrePropiedad.matches("contracts?")
-                    || nombrePropiedad.matches("awards?"))
-                    && property.equals("status")){
-                String valor = ocdsObject.getString("status");
-                ocdsObject.put("status", "http://purl.org/onto-ocds/ocds#"+map.get(nombrePropiedad)+"Status" + WordUtils.capitalizeFully(valor));
-            }
-
+            procesarCodelist(ocdsObject, nombrePropiedad, property);
+            procesarItems(ocdsObject, nombrePropiedad, property);
             if(ocdsObject.get(property) instanceof Document) {
                 addContext((Document) ocdsObject.get(property), property);
             } else if(ocdsObject.get(property) instanceof ArrayList) {
@@ -96,20 +95,6 @@ public class Context {
 
     private String capitalize(final String line) {
         return Character.toUpperCase(line.charAt(0)) + line.substring(1);
-    }
-
-    private String getId(JSONObject ocdsObject, String nombrePropiedad){
-        if(nombrePropiedad.equals("suppliers")){
-            return "http://www.contrataciones.gov.py/datos/api/v2/doc/proveedores/ruc/"+ocdsObject.getJSONObject("identifier").getString("id");
-        }
-        if(ocdsObject.get("uri") != null && isUri(ocdsObject.getString("uri")))
-            return ocdsObject.getString("uri");
-        if(ocdsObject.get("url") != null && isUri(ocdsObject.getString("url")))
-            return ocdsObject.getString("url");
-        if(ocdsObject.get("id") != null && isUri(ocdsObject.getString("id")))
-            return ocdsObject.getString("id");
-
-        return "";
     }
 
     private String getId(Document ocdsObject, String nombrePropiedad){
@@ -129,7 +114,6 @@ public class Context {
     private boolean isUri(String url){
         return url.matches("^(https?)://[-a-zA-Z0-9+&@#/%?=~_|!:,.;]*[-a-zA-Z0-9+&@#/%=~_|]");
         //return url.matches("^(https?://)?([\da-z.-]+).([a-z.]{2,6})([/\w \.-]*)*\/?$");
-
     }
 
     private void configMapping(){
@@ -170,9 +154,6 @@ public class Context {
         map.put("awards", "award");
         map.put("contracts", "contract");
         map.put("tenderers", "organization");
-
-        //listado para mapear el nombre del atributo (Array) al nombre del context
-        /*mapArrays.put("awards", "award");
-        mapArrays.put("documents", "document");*/
+        map.put("lots", "lot");
     }
 }
