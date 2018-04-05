@@ -29,7 +29,7 @@ public class OCDSService extends BaseService{
       do {
         if(intentos > 0){
           //Espera por cada reintento
-          logger.error("Reintentando {}. Intento: {}", id, intentos);
+          //logger.error("Reintentando {}. Intento: {}", id, intentos);
           if(getSleep() > 0){
             int reintentarEn = getSleep() + intentos * (100 + (int)(Math.random() * ((1000 - 100) + 1)));
             logger.error("Reintentando {}. En: {} seg.", id, reintentarEn);
@@ -40,10 +40,10 @@ public class OCDSService extends BaseService{
         intentos++;
         recordPackageReq = service.recordPackage(token,id);
         Response res = recordPackageReq.execute();
-        //logger.error(res.message());
         if (res.body() != null) {
           recordPackage = res.body().toString();
         } else {
+          logger.error(res.code()+"");
           recordPackage = null;
         }
 

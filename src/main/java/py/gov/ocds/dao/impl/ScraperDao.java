@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.mongodb.client.model.Filters.eq;
+
 /**
  * Created by diego on 29/04/17.
  */
@@ -57,7 +59,7 @@ public class ScraperDao implements Dao {
         MongoDatabase dbManager = mongo.getDatabase("opendata");
         MongoCollection<Document> colllection = dbManager.getCollection("ocds");
         String id = doc.getString("_id");
-        Bson filter = Filters.eq("_id", id);
+        Bson filter = eq("_id", id);
 
         Bson update = new Document("$set", doc);
         UpdateOptions options = new UpdateOptions().upsert(true);
@@ -83,6 +85,10 @@ public class ScraperDao implements Dao {
 
     public List<Document> getAllDocuments(){
         return getAll().into(new ArrayList<>());
+    }
+
+    public Document get(String id){
+        return collection.find(eq("_id", id)).first();
     }
 
     @PreDestroy
