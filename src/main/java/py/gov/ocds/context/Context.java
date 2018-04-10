@@ -52,7 +52,7 @@ public class Context {
                 if (item instanceof Document) {
                     Document itemDocument = ((Document) item);
                     String valor = itemDocument.getString("id");
-                    itemDocument.put("id", urlItem + valor);
+                    itemDocument.put("@id", urlItem + valor);
                 }else if (item instanceof String) {//Lots.items["", "", ...]
                     itemArray.add(urlItem + item);
                 }
@@ -64,13 +64,36 @@ public class Context {
         }
     }
 
+    private void procesarLotes(Document ocdsObject, String nombrePropiedad, String property){
+        String urlItem = "http://www.contrataciones.gov.py:4443/datos/api/v2/doc/lot/";
+        if((nombrePropiedad.equals("tender")
+                || nombrePropiedad.equals("contracts"))
+                && property.equals("lots")){
+            ArrayList array = (ArrayList) ocdsObject.get(property);
+
+            ArrayList<String> lotArray = new ArrayList<>();
+            for (Object lot : array) {
+                //Contract.lots[{}, {}, ...]
+                if (lot instanceof Document) {
+                    Document lotDocument = ((Document) lot);
+                    String valor = lotDocument.getString("id");
+                    lotDocument.put("@id", urlItem + valor);
+                }
+            }
+
+            if(!lotArray.isEmpty()){
+                ocdsObject.put(property, lotArray);
+            }
+        }
+    }
+
     public void addContext(Document ocdsObject, String nombrePropiedad){
         String contextName = map.get(nombrePropiedad);
         if(contextName != null){
             ocdsObject.put("@context", "http://girolabs.com.py/ocds/context-" + contextName + ".json");
             ocdsObject.put("@type", capitalize(contextName));
             String id = getId(ocdsObject, nombrePropiedad);
-            if(!id.isEmpty()){
+            if(!id.isEmpty() && ocdsObject.get("@id") == null){
                 ocdsObject.put("@id", id);
                 cantInstancias++;
             }else{
@@ -81,6 +104,7 @@ public class Context {
         for(String property: ocdsObject.keySet()){
             procesarCodelist(ocdsObject, nombrePropiedad, property);
             procesarItems(ocdsObject, nombrePropiedad, property);
+            procesarLotes(ocdsObject, nombrePropiedad, property);
             if(ocdsObject.get(property) instanceof Document) {
                 addContext((Document) ocdsObject.get(property), property);
             } else if(ocdsObject.get(property) instanceof ArrayList) {
