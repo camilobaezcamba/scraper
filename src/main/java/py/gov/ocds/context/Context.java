@@ -32,8 +32,15 @@ public class Context {
                 || nombrePropiedad.matches("contracts?")
                 || nombrePropiedad.matches("awards?"))
                 && property.equals("status")){
-            String valor = ocdsObject.getString("status");
+            String valor = ocdsObject.getString(property);
             ocdsObject.put("status", "http://purl.org/onto-ocds/ocds#"+map.get(nombrePropiedad)+"Status" + WordUtils.capitalizeFully(valor));
+        }
+    }
+
+    private void procesarClassificationScheme(Document ocdsObject, String nombrePropiedad){
+        if(nombrePropiedad.equals("classification")){
+            ocdsObject.remove("schema");
+            ocdsObject.put("scheme", "http://purl.org/onto-ocds/ocds#ics_CDNCP");
         }
     }
 
@@ -100,6 +107,8 @@ public class Context {
                 cantBlankNodes++;
             }
         }
+
+        procesarClassificationScheme(ocdsObject, nombrePropiedad);
 
         for(String property: ocdsObject.keySet()){
             procesarCodelist(ocdsObject, nombrePropiedad, property);
