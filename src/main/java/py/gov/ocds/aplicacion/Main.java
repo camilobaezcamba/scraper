@@ -27,8 +27,8 @@ import java.util.Map;
 public class Main {
     public static void main(String[] args) throws InterruptedException, IOException {
         Scraper scraper = new Scraper();
-        //scraper.scrap();
-        Context context = new Context();
+        scraper.scrap();
+        /*Context context = new Context();
         ScraperDao dao = new ScraperDao();
         Translator translator = new Translator();
 
@@ -37,6 +37,6 @@ public class Main {
 
         translator.translateToFile(documento);
         System.out.println("Cantidad de Instancias: " + context.getCantInstancias());
-        System.out.println("Cantidad de Blank Nodes: " + context.getCantBlankNodes());
+        System.out.println("Cantidad de Blank Nodes: " + context.getCantBlankNodes());*/
     }
 }

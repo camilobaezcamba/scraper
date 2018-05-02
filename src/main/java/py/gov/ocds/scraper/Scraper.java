@@ -28,7 +28,8 @@ public class Scraper {
   private static final int sleep = 0;
   private static final int sleepReintento = 3000;
   private static ExecutorService es;
-  private static final String cantidadLicitaciones = "100";
+  private static int cantidadLicitaciones = 100; // por pagina
+  private static final int totalLicitaciones = 199; // en total "12508";
   private static final String fechaDesde = "2016-01-01";
   private static final String fechaHasta = "2016-01-31";
 
@@ -98,15 +99,31 @@ public class Scraper {
       logger.warn("Recuperando recordPackage: " + idLlamado);
       saveRecordOne(idLlamado, dao, ocds);
     }else{
-      logger.warn("Recuperando licitaciones");
-      JSONArray procesos = licitaciones.recuperarLicitaciones(Parametros.builder()
-              .put("fecha_desde", fechaDesde)
-              .put("fecha_hasta", fechaHasta)
-              .put("tipo_fecha", "ENT")
-              .put("tipo_licitacion", "tradicional")
-              .put("offset", "0")
-              .put("show_pagination", "false")
-              .put("limit", cantidadLicitaciones));
+      int offset = 0;
+      JSONArray procesos = new JSONArray();
+      while (totalLicitaciones > offset){
+        logger.warn("Recuperando licitaciones " + offset + "-" + ( offset + cantidadLicitaciones ));
+        JSONArray procesosPaginados = licitaciones.recuperarLicitaciones(Parametros.builder()
+                .put("fecha_desde", fechaDesde)
+                .put("fecha_hasta", fechaHasta)
+                .put("tipo_fecha", "ENT")
+                .put("tipo_licitacion", "tradicional")
+                .put("offset", String.valueOf(offset))
+                .put("limit", String.valueOf(cantidadLicitaciones))
+        );
+
+        if(procesosPaginados != null){
+          for (int i = 0; i < procesosPaginados.length(); i++) {
+            procesos.put(procesosPaginados.getJSONObject(i));
+          }
+
+          offset += cantidadLicitaciones;
+
+          if(offset + cantidadLicitaciones > totalLicitaciones){
+            cantidadLicitaciones =  totalLicitaciones - offset;
+          }
+        }
+      }
 
       ocds.setSleep(sleepReintento);
       long inicio = System.currentTimeMillis();
