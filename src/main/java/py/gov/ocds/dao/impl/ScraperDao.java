@@ -4,15 +4,12 @@ import com.mongodb.*;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.util.JSON;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.json.JSONObject;
 import py.gov.ocds.dao.interfaz.Dao;
 import py.gov.ocds.factory.MongoClientFactory;
-
 import javax.annotation.PreDestroy;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -47,23 +44,19 @@ public class ScraperDao implements Dao {
     }
 
     private void mongoInsert(Document doc) {
-        MongoClient mongo = MongoClientFactory.getMongoClient();
-        MongoDatabase dbManager = mongo.getDatabase("opendata");
-        MongoCollection<Document> colllection = dbManager.getCollection("ocds");
-        colllection.insertOne(doc);
+        collection.insertOne(doc);
         mongo.close();
     }
 
     private void mongoUpdate(Document doc) {
         MongoClient mongo = MongoClientFactory.getMongoClient();
-        MongoDatabase dbManager = mongo.getDatabase("opendata");
-        MongoCollection<Document> colllection = dbManager.getCollection("ocds");
+
         String id = doc.getString("_id");
         Bson filter = eq("_id", id);
 
         Bson update = new Document("$set", doc);
         UpdateOptions options = new UpdateOptions().upsert(true);
-        colllection.updateOne(filter, update, options);
+        collection.updateOne(filter, update, options);
         mongo.close();
     }
 

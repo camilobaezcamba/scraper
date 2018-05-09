@@ -5,41 +5,41 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import py.gov.ocds.scraper.Parametros;
-import py.gov.ocds.service.interfaz.LicitacionesServiceInterface;
+import py.gov.ocds.service.interfaz.BuscadorServiceInterface;
 import retrofit2.Call;
 import retrofit2.Response;
 
 /**
  * Created by diego on 01/05/17.
  */
-public class LicitacionesService extends BaseService{
+public class BuscadorService extends BaseService{
 
-  private static final Logger logger = LoggerFactory.getLogger(LicitacionesService.class);
+  private static final Logger logger = LoggerFactory.getLogger(BuscadorService.class);
 
-  LicitacionesServiceInterface service = retrofit.create(LicitacionesServiceInterface.class);
+  BuscadorServiceInterface service = retrofit.create(BuscadorServiceInterface.class);
 
   private AutenticacionService authService = new AutenticacionService();
   private String token = authService.accessToken();
 
-  public JSONArray recuperarLicitaciones(Parametros criterios) {
+  public JSONArray recuperar(String servicio, Parametros criterios) {
 
     try {
 
-      Call<String> licitaciones = service.licitaciones(token, criterios.build());
+      Call<String> resultados = service.buscar(servicio, token, criterios.build());
 
-      Response res = licitaciones.execute();
+      Response res = resultados.execute();
 
       if (res.body() != null) {
-        return listarLicitaciones(res.body().toString());
+        return listarResultados(res.body().toString());
       }
 
     } catch(Exception e) {
-      logger.error("Error al consultar el servicio de licitaciones");
+      logger.error("Error al consultar el servicio de " + servicio);
     }
     return null;
   }
 
-  public JSONArray listarLicitaciones(String jsonld)
+  public JSONArray listarResultados(String jsonld)
   {
     JSONObject obj = new JSONObject(jsonld);
 

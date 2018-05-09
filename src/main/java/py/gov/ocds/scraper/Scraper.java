@@ -4,9 +4,8 @@ import org.bson.Document;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
-import py.gov.ocds.dao.interfaz.Dao;
 import py.gov.ocds.dao.impl.ScraperDao;
-import py.gov.ocds.service.impl.LicitacionesService;
+import py.gov.ocds.service.impl.BuscadorService;
 import py.gov.ocds.service.impl.OCDSService;
 import ch.qos.logback.classic.Logger;
 import java.util.ArrayList;
@@ -31,6 +30,7 @@ public class Scraper {
   private static final int sleepReintento = 500;
   private static ExecutorService es;
   private static int cantidadLicitaciones = 1000; // por pagina
+  private static int cantidadProveedores = 1000; // por pagina
   private static final int totalLicitaciones = 12508; // en total "12508";
   private static final String fechaDesde = "2016-01-01";
   private static final String fechaHasta = "2016-12-31";
@@ -113,7 +113,7 @@ public class Scraper {
 
   public void scrap(String idLlamado) throws InterruptedException {
 
-    LicitacionesService licitaciones = new LicitacionesService();
+    BuscadorService buscador = new BuscadorService();
     OCDSService ocds = new OCDSService();
     ScraperDao dao = new ScraperDao();
 
@@ -121,38 +121,19 @@ public class Scraper {
       logger.warn("Recuperando recordPackage: " + idLlamado);
       saveRecordOne(idLlamado, dao, ocds);
     }else{
-      int offset = 0;
-      JSONArray procesos = new JSONArray();
-      while (totalLicitaciones > offset){
-        logger.warn("Recuperando licitaciones " + offset + "-" + ( offset + cantidadLicitaciones ));
-        JSONArray procesosPaginados = licitaciones.recuperarLicitaciones(Parametros.builder()
-                .put("fecha_desde", fechaDesde)
-                .put("fecha_hasta", fechaHasta)
-                .put("tipo_fecha", "ENT")
-                .put("tipo_licitacion", "tradicional")
-                .put("offset", String.valueOf(offset))
-                .put("limit", String.valueOf(cantidadLicitaciones))
-        );
-
-        if(procesosPaginados != null){
-          for (int i = 0; i < procesosPaginados.length(); i++) {
-            procesos.put(procesosPaginados.getJSONObject(i));
-          }
-
-          offset += cantidadLicitaciones;
-
-          if(offset + cantidadLicitaciones > totalLicitaciones){
-            cantidadLicitaciones =  totalLicitaciones - offset;
-          }
-        } else {
-          Thread.sleep(1000);
-        }
-      }
+      JSONArray procesos = buscarPaginado("licitaciones", Parametros.builder()
+                      .put("fecha_desde", fechaDesde)
+                      .put("fecha_hasta", fechaHasta)
+                      .put("tipo_fecha", "ENT")
+                      .put("tipo_licitacion", "tradicional")
+                      .put("offset", "0")
+                      .put("limit", String.valueOf(cantidadLicitaciones))
+              , cantidadLicitaciones, totalLicitaciones
+      );
 
       ocds.setSleep(sleepReintento);
       long inicio = System.currentTimeMillis();
       long fin;
-      logger.warn("Recuperadas: " + procesos.length());
 
       if(asynkMode){
         for (int i = 0; i < procesos.length(); i++) {
@@ -193,6 +174,51 @@ public class Scraper {
 
   public void scrap() throws InterruptedException {
     scrap(null);
+  }
+
+  public JSONArray buscarPaginado(String servicio, Parametros criterios, int cantPagina, int total){
+    BuscadorService buscador = new BuscadorService();
+    int offset = 0;
+    JSONArray procesos = new JSONArray();
+    while (total > offset){
+      logger.warn("Recuperando " + servicio + " "
+              + criterios.get("offset") + "-"
+              + (Integer.valueOf((String)criterios.get("offset")) + cantPagina ));
+      JSONArray procesosPaginados = buscador.recuperar(servicio, criterios);
+
+      if(procesosPaginados != null){
+        for (int i = 0; i < procesosPaginados.length(); i++) {
+          procesos.put(procesosPaginados.getJSONObject(i));
+        }
+
+        offset += cantPagina;
+        criterios.put("offset", String.valueOf(offset));
+
+        if(offset + cantPagina > total){
+          cantPagina =  total - offset;
+        }
+      } else {
+        try {
+          Thread.sleep(1000);
+        } catch (InterruptedException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+    logger.warn("Recuperadas: " + procesos.length());
+
+    return procesos;
+  }
+
+  public void scrapProveedores(){
+    JSONArray procesos = buscarPaginado("proveedores", Parametros.builder()
+                    //.put("fecha_desde", fechaDesde)
+                    //.put("fecha_hasta", fechaHasta)
+                    //.put("tipo_fecha", "ADJ")
+                    .put("offset", "0")
+                    .put("limit", "1000")
+            , 1000, 26246
+    );
   }
 }
 

@@ -16,6 +16,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import py.gov.ocds.context.Context;
 import py.gov.ocds.dao.impl.ScraperDao;
+import py.gov.ocds.scraper.Parametros;
 import py.gov.ocds.scraper.Scraper;
 
 import java.io.File;
@@ -27,7 +28,8 @@ import java.util.Map;
 public class Main {
     public static void main(String[] args) throws InterruptedException, IOException {
         Scraper scraper = new Scraper();
-        scraper.scrap();
+        //scraper.scrap();
+        scraper.scrapProveedores();
         /*Context context = new Context();
         ScraperDao dao = new ScraperDao();
         Translator translator = new Translator();
