@@ -18,11 +18,14 @@ public class LicitacionesService extends BaseService{
 
   LicitacionesServiceInterface service = retrofit.create(LicitacionesServiceInterface.class);
 
+  private AutenticacionService authService = new AutenticacionService();
+  private String token = authService.accessToken();
+
   public JSONArray recuperarLicitaciones(Parametros criterios) {
 
     try {
 
-      Call<String> licitaciones = service.licitaciones(criterios.build());
+      Call<String> licitaciones = service.licitaciones(token, criterios.build());
 
       Response res = licitaciones.execute();
 

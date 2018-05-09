@@ -45,11 +45,15 @@ public class OCDSService extends BaseService{
         } else {
           logger.error(res.code()+"");
           recordPackage = null;
+          if(res.code() == 401){
+            token = authService.accessToken(true);
+            System.out.println("Actualizando token: " + token);
+          }
         }
 
-      } while (recordPackage == null && intentos < 100);
+      } while (recordPackage == null && intentos < 10);
 
-      if (intentos >= 70) {
+      if (intentos >= 10) {
         logger.error("Error al intentar consultar el id {}. Intentos: {}", id, intentos);
       }
 

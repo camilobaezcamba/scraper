@@ -2,6 +2,7 @@ package py.gov.ocds.service.interfaz;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
+import retrofit2.http.Header;
 import retrofit2.http.QueryMap;
 
 import java.util.Map;
@@ -12,5 +13,5 @@ import java.util.Map;
 public interface LicitacionesServiceInterface {
 
   @GET("datos/api/v2/doc/buscadores/licitaciones")
-  Call<String> licitaciones(@QueryMap Map<String, String> opciones);
+  Call<String> licitaciones(@Header("Authorization") String token, @QueryMap Map<String, String> opciones);
 }

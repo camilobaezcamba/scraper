@@ -1,5 +1,6 @@
 package py.gov.ocds.scraper;
 
+import org.bson.Document;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
@@ -9,6 +10,7 @@ import py.gov.ocds.service.impl.LicitacionesService;
 import py.gov.ocds.service.impl.OCDSService;
 import ch.qos.logback.classic.Logger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -26,12 +28,14 @@ public class Scraper {
 
   private static final boolean asynkMode = true;
   private static final int sleep = 0;
-  private static final int sleepReintento = 3000;
+  private static final int sleepReintento = 500;
   private static ExecutorService es;
-  private static int cantidadLicitaciones = 100; // por pagina
-  private static final int totalLicitaciones = 199; // en total "12508";
+  private static int cantidadLicitaciones = 1000; // por pagina
+  private static final int totalLicitaciones = 12508; // en total "12508";
   private static final String fechaDesde = "2016-01-01";
-  private static final String fechaHasta = "2016-01-31";
+  private static final String fechaHasta = "2016-12-31";
+
+  private static List<String> invalidos =  Arrays.asList("301272", "302292");
 
   /**
    * Método asincrono para obtener un compiledRelease. Solamente se crea el hilo y es agregado al listado de hilos, deben ser iniciados manualmente
@@ -41,7 +45,18 @@ public class Scraper {
    * @param ocds
    * @throws InterruptedException
    */
-  private void asynkSaveRecord(int finalI, JSONArray procesos, Dao dao, OCDSService ocds) throws InterruptedException {
+  private void asynkSaveRecord(int finalI, JSONArray procesos, ScraperDao dao, OCDSService ocds) throws InterruptedException {
+    Long id_llamado = procesos.getJSONObject(finalI).getLong("id_llamado");
+    Document doc = dao.get(id_llamado.toString());
+    if(doc != null){
+      System.out.println(id_llamado + " ya existe en la BD");
+      return;
+    }
+
+    if(invalidos.contains(id_llamado.toString())){
+      return;
+    }
+
     Thread hilo = new Thread(() -> saveRecord(finalI, procesos, dao, ocds));
     hilos.add(hilo);
   }
@@ -54,19 +69,26 @@ public class Scraper {
    * @param ocds
    * @throws InterruptedException
    */
-  private void normalSaveRecord(int finalI, JSONArray procesos, Dao dao, OCDSService ocds) throws InterruptedException {
+  private void normalSaveRecord(int finalI, JSONArray procesos, ScraperDao dao, OCDSService ocds) throws InterruptedException {
+    Long id_llamado = procesos.getJSONObject(finalI).getLong("id_llamado");
+    Document doc = dao.get(id_llamado.toString());
+    if(doc != null){
+      System.out.println(id_llamado + " ya existe en la BD");
+      return;
+    }
+
     saveRecord(finalI, procesos, dao, ocds);
     if(sleep > 0)
       Thread.sleep(sleep);
   }
 
   //Obtiene un compiledRelease y lo almacen en la base de datos
-  private void saveRecord(int finalI, JSONArray procesos, Dao dao, OCDSService ocds){
+  private void saveRecord(int finalI, JSONArray procesos, ScraperDao dao, OCDSService ocds){
       Long id_llamado = procesos.getJSONObject(finalI).getLong("id_llamado");
       saveRecordOne(id_llamado.toString(), dao, ocds);
   }
 
-  private void saveRecordOne(String id_llamado, Dao dao, OCDSService ocds){
+  private void saveRecordOne(String id_llamado, ScraperDao dao, OCDSService ocds){
     String record = ocds.recordPackage(id_llamado);
     if(record == null){
       logger.error("No se pudo recuperar el registro {}", id_llamado);
@@ -93,7 +115,7 @@ public class Scraper {
 
     LicitacionesService licitaciones = new LicitacionesService();
     OCDSService ocds = new OCDSService();
-    Dao dao = new ScraperDao();
+    ScraperDao dao = new ScraperDao();
 
     if(idLlamado != null){
       logger.warn("Recuperando recordPackage: " + idLlamado);
@@ -122,6 +144,8 @@ public class Scraper {
           if(offset + cantidadLicitaciones > totalLicitaciones){
             cantidadLicitaciones =  totalLicitaciones - offset;
           }
+        } else {
+          Thread.sleep(1000);
         }
       }
 
@@ -134,13 +158,13 @@ public class Scraper {
         for (int i = 0; i < procesos.length(); i++) {
           asynkSaveRecord(i, procesos, dao, ocds);
         }
-        int cant = 100;
+        int cant = 4;
         int start = 0;
         int end = cant;
 
         //Lanzar 'cant' hilos y esperar la respuesta de todos para volver a lanzar los siguientes
         while(hilos.size() >= end){
-          System.out.println("probando del " + (start + 1) + " al " + end);
+          System.out.println("probando del " + (start + 1) + " al " + end + " de " + hilos.size());
           List<Thread> subLista = hilos.subList(start, end);
 
           //Se lanzan los hilos

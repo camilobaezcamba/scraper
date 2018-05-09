@@ -19,8 +19,13 @@ public class AutenticacionService extends BaseService {
   private AutenticacionServiceInterface service = retrofit.create(AutenticacionServiceInterface.class);
 
   private String accessToken = null;
+
   public String accessToken() {
-    if(accessToken != null){
+    return accessToken(false);
+  }
+
+  public String accessToken(boolean forzar) {
+    if(accessToken != null && !forzar){
       return accessToken;
     }
     try {
