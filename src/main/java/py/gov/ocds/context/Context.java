@@ -134,6 +134,9 @@ public class Context {
         if(nombrePropiedad.equals("suppliers")){
             return "http://www.contrataciones.gov.py/datos/api/v2/doc/proveedores/ruc/"+ ((Document)ocdsObject.get("identifier")).getString("id");
         }
+        if(nombrePropiedad.equals("compiledRelease")){
+            return "http://www.contrataciones.gov.py/datos/api/v2/doc/release/"+ ocdsObject.getString("id");
+        }
         if(ocdsObject.get("uri") != null && isUri(ocdsObject.getString("uri")))
             return ocdsObject.getString("uri");
         if(ocdsObject.get("url") != null && isUri(ocdsObject.getString("url")))

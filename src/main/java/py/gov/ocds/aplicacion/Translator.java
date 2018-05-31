@@ -3,17 +3,23 @@ package py.gov.ocds.aplicacion;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
+import org.apache.jena.riot.RDFDataMgr;
+import org.apache.jena.tdb.TDBFactory;
+import org.apache.jena.tdb.TDBLoader;
 import org.bson.Document;
 import org.bson.codecs.Codec;
 import org.bson.codecs.DocumentCodec;
 import org.json.JSONObject;
 
+import javax.print.Doc;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 public class Translator {
     private ObjectMapper mapper;
@@ -81,6 +87,44 @@ public class Translator {
                 e.printStackTrace();
             }
         }
+    }
+
+    public void load(String modelo) throws JsonProcessingException {
+        String directory = "/Users/admin/tdb" ;
+        Dataset ds = TDBFactory.createDataset(directory) ;
+        Model model = ds.getNamedModel(modelo) ;
+        String sparqlQueryString = "SELECT * { ?s ?p ?o }" ;
+
+        Query query = QueryFactory.create(sparqlQueryString) ;
+        QueryExecution qexec = QueryExecutionFactory.create(query, model);
+
+        //ResultSet results = qexec.execSelect() ;
+        //ResultSetFormatter.out(results) ;
+
+        qexec.close();
+        System.err.printf("Model size is: %s\n", model.size());
+
+        ds.close();
+    }
+
+    public void translateToTDB(List<Document> documents, String modelo) throws JsonProcessingException {
+        if(documents == null || documents.isEmpty())
+            return;
+
+        System.out.println("translating");
+        String directory = "/Users/admin/tdb" ;
+        Dataset ds = TDBFactory.createDataset(directory) ;
+        Model model = ds.getNamedModel(modelo) ;
+
+        int i = 0;
+        for(Document document: documents){
+            i++;
+            if(i % 100 == 0){
+                System.out.println(i);
+            }
+            model.read(new ByteArrayInputStream(documentToString(document).getBytes()), null, "JSON-LD");
+        }
+        ds.close();
     }
 
 }

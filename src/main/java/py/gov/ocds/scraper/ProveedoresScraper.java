@@ -1,13 +1,19 @@
 package py.gov.ocds.scraper;
 
+import ch.qos.logback.classic.Logger;
 import org.bson.Document;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.LoggerFactory;
 import py.gov.ocds.dao.impl.CompiledReleaseDao;
+import py.gov.ocds.dao.impl.ProveedoresDao;
+import py.gov.ocds.dao.interfaz.Dao;
+import py.gov.ocds.service.impl.BaseService;
 import py.gov.ocds.service.impl.BuscadorService;
 import py.gov.ocds.service.impl.OCDSService;
-import ch.qos.logback.classic.Logger;
+import py.gov.ocds.service.impl.ProveedoresService;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -16,26 +22,22 @@ import java.util.concurrent.ExecutorService;
 /**
  * Created by diego on 03/04/17.
  */
-public class Scraper {
+public class ProveedoresScraper {
 
-  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(Scraper.class);
+  private static final org.slf4j.Logger logger = LoggerFactory.getLogger(ProveedoresScraper.class);
+
   private static List<Thread> hilos = new ArrayList<>();
 
   private static final boolean asynkMode = true;
   private static final int sleep = 0;
   private static final int sleepReintento = 500;
   private static ExecutorService es;
-  private static int cantidadLicitaciones = 1000; // por pagina
-  private static int cantidadProveedores = 1000; // por pagina
-  private static final int totalLicitaciones = 12508; // en total "12508";
-  private static final String fechaDesde = "2016-01-01";
-  private static final String fechaHasta = "2016-12-31";
-private int countExists = 0;
+  private static int cantidadPorPagina = 1000; // por pagina
+  private static final int cantidadTotal = 26254; // en total "12508";
+
   private static List<String> invalidos =  Arrays.asList(
-          "301272", "302292", "317774", "318319", "314426", "305995", "306178",
-          "307357", "311027", "311076", "311173", "316864", // 500
-          "321272", "304990", "307649", // sin compiledRelease
-          "316205"); //504
+          "chai-sociedad-anonima", "juan-manuel-battilana-pena-bibolini" //404
+  );
 
   /**
    * Método asincrono para obtener un compiledRelease. Solamente se crea el hilo y es agregado al listado de hilos, deben ser iniciados manualmente
@@ -45,16 +47,24 @@ private int countExists = 0;
    * @param ocds
    * @throws InterruptedException
    */
-  private void asynkSaveRecord(int finalI, JSONArray procesos, CompiledReleaseDao dao, OCDSService ocds) throws InterruptedException {
-    Long id_llamado = procesos.getJSONObject(finalI).getLong("id_llamado");
-    Document doc = dao.get(id_llamado.toString());
+  private void asynkSaveRecord(int finalI, JSONArray procesos, ProveedoresDao dao, ProveedoresService ocds) throws InterruptedException {
+    String id = "";
+    try{
+      id = procesos.getJSONObject(finalI).getString("id");
+    }catch (JSONException ex){
+      System.out.println("Excepcion " + finalI);
+    }
+
+    if(id.isEmpty()){
+      return;
+    }
+    Document doc = dao.get(id.toString());
     if(doc != null){
-      System.out.println(id_llamado + " ya existe en la BD");
-      countExists++;
+      System.out.println(id + " ya existe en la BD");
       return;
     }
 
-    if(invalidos.contains(id_llamado.toString())){
+    if(invalidos.contains(id.toString())){
       return;
     }
 
@@ -70,11 +80,11 @@ private int countExists = 0;
    * @param ocds
    * @throws InterruptedException
    */
-  private void normalSaveRecord(int finalI, JSONArray procesos, CompiledReleaseDao dao, OCDSService ocds) throws InterruptedException {
-    Long id_llamado = procesos.getJSONObject(finalI).getLong("id_llamado");
-    Document doc = dao.get(id_llamado.toString());
+  private void normalSaveRecord(int finalI, JSONArray procesos, ProveedoresDao dao, ProveedoresService ocds) throws InterruptedException {
+    String id = procesos.getJSONObject(finalI).getString("id");
+    Document doc = dao.get(id.toString());
     if(doc != null){
-      System.out.println(id_llamado + " ya existe en la BD");
+      System.out.println(id + " ya existe en la BD");
       return;
     }
 
@@ -84,51 +94,33 @@ private int countExists = 0;
   }
 
   //Obtiene un compiledRelease y lo almacen en la base de datos
-  private void saveRecord(int finalI, JSONArray procesos, CompiledReleaseDao dao, OCDSService ocds){
-      Long id_llamado = procesos.getJSONObject(finalI).getLong("id_llamado");
-      saveRecordOne(id_llamado.toString(), dao, ocds);
+  private void saveRecord(int finalI, JSONArray procesos, ProveedoresDao dao, ProveedoresService ocds){
+      String id_llamado = procesos.getJSONObject(finalI).getString("id");
+      saveRecordOne(id_llamado, dao, ocds);
   }
 
-  private void saveRecordOne(String id_llamado, CompiledReleaseDao dao, OCDSService ocds){
-    String record = ocds.recordPackage(id_llamado);
+  private void saveRecordOne(String id, ProveedoresDao dao, ProveedoresService ocds){
+    String record = ocds.get(id);
     if(record == null){
-      logger.error("No se pudo recuperar el registro {}", id_llamado);
+      logger.error("No se pudo recuperar el registro {}", id);
       return;
     }
-    JSONObject recordJson = new JSONObject(record);
-    JSONArray recordsJson = recordJson.getJSONArray("records");
-    boolean guardar = false;
-    JSONObject compiledRelease = null;
-    for (int j=0; j<recordsJson.length(); j++) {
-      JSONObject item = recordsJson.getJSONObject(j);
-      compiledRelease = item.getJSONObject("compiledRelease");
-      if(compiledRelease != null){
-        guardar = true;
-      }
-    }
-
-    if (guardar && compiledRelease != null) {
-      logger.debug("Datos guardados: {}", id_llamado);
-      dao.guardar(id_llamado, compiledRelease.toString());
-    }
+    dao.guardar(id, record);
+    logger.debug("Datos guardados: {}", id);
   }
 
-  public void scrap(String idLlamado) throws InterruptedException {
-    OCDSService ocds = new OCDSService();
-    CompiledReleaseDao dao = new CompiledReleaseDao();
+  public void scrap(String id) throws InterruptedException {
+    ProveedoresService ocds = new ProveedoresService();
+    ProveedoresDao dao = new ProveedoresDao();
 
-    if(idLlamado != null){
-      logger.warn("Recuperando recordPackage: " + idLlamado);
-      saveRecordOne(idLlamado, dao, ocds);
+    if(id != null){
+      logger.warn("Recuperando recordPackage: " + id);
+      saveRecordOne(id, dao, ocds);
     }else{
-      JSONArray procesos = buscarPaginado("licitaciones", Parametros.builder()
-                      .put("fecha_desde", fechaDesde)
-                      .put("fecha_hasta", fechaHasta)
-                      .put("tipo_fecha", "ENT")
-                      .put("tipo_licitacion", "tradicional")
+      JSONArray procesos = buscarPaginado("proveedores", Parametros.builder()
                       .put("offset", "0")
-                      .put("limit", String.valueOf(cantidadLicitaciones))
-              , cantidadLicitaciones, totalLicitaciones
+                      .put("limit", String.valueOf(cantidadPorPagina))
+              , cantidadPorPagina, cantidadTotal
       );
 
       ocds.setSleep(sleepReintento);
@@ -172,8 +164,6 @@ private int countExists = 0;
         fin = System.currentTimeMillis();;
       }
       System.out.println("Tiempo de ejecución: " + (fin - inicio) / 1000 + " seg.");
-      System.out.println(countExists);
-
     }
   }
 
@@ -215,14 +205,33 @@ private int countExists = 0;
     return procesos;
   }
 
+  private String servicio;
+  private String id;
+  private Parametros parametros;
+
+  private Dao dao;
+  private BaseService service;
   public void scrapProveedores(){
-    JSONArray procesos = buscarPaginado("proveedores", Parametros.builder()
-                    //.put("fecha_desde", fechaDesde)
-                    //.put("fecha_hasta", fechaHasta)
-                    //.put("tipo_fecha", "ADJ")
-                    .put("offset", "0")
-                    .put("limit", "1000")
-            , 1000, 26246
-    );
+    this.dao = new ProveedoresDao();
+    this.service = new ProveedoresService();
+    this.servicio = "proveedores";
+    this.id = "id";
+    this.parametros = Parametros.builder()
+            .put("offset", "0")
+            .put("limit", "1000");
+  }
+
+  public void scrapLicitaciones(){
+    this.dao = new CompiledReleaseDao();
+    this.service = new OCDSService();
+    this.servicio = "licitaciones";
+    this.id = "id_llamado";
+    this.parametros = Parametros.builder()
+            .put("fecha_desde", "2016-01-01")
+            .put("fecha_hasta", "2016-12-31")
+            .put("tipo_fecha", "ENT")
+            .put("tipo_licitacion", "tradicional")
+            .put("offset", "0")
+            .put("limit", "cantidadLicitaciones");
   }
 }
