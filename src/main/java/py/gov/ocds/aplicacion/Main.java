@@ -17,7 +17,11 @@ import static com.mongodb.client.model.Filters.ne;
 
 public class Main {
     public static void main(String[] args) throws InterruptedException, IOException {
-        translatToTDB("licitaciones");
+        //translatToTDB("licitaciones");
+        Translator translator = new Translator();
+        //translator.load("licitaciones");
+        //translator.borrarModelo("licitaciones");
+        translator.borrarModelo("licitaciones");
     }
 
     public void scrapping() throws InterruptedException {

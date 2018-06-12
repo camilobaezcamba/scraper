@@ -94,6 +94,7 @@ public class Translator {
         Dataset ds = TDBFactory.createDataset(directory) ;
         Model model = ds.getNamedModel(modelo) ;
         String sparqlQueryString = "SELECT * { ?s ?p ?o }" ;
+        ds.addNamedModel("http://example.orgs/"+modelo, model);
 
         Query query = QueryFactory.create(sparqlQueryString) ;
         QueryExecution qexec = QueryExecutionFactory.create(query, model);
@@ -107,6 +108,22 @@ public class Translator {
         ds.close();
     }
 
+    public void changeName(String modelo) throws JsonProcessingException {
+        String directory = "/Users/admin/tdb" ;
+        Dataset ds = TDBFactory.createDataset(directory) ;
+        Model model = ds.getNamedModel(modelo) ;
+        ds.addNamedModel("http://example.org/" + modelo, model);
+        ds.close();
+        System.out.println("Hecho");
+    }
+
+    public void borrarModelo(String modelo) throws JsonProcessingException {
+        String directory = "/Users/admin/tdb" ;
+        Dataset ds = TDBFactory.createDataset(directory) ;
+        ds.removeNamedModel(modelo);
+        ds.close();
+        System.out.println("Hecho");
+    }
     public void translateToTDB(List<Document> documents, String modelo) throws JsonProcessingException {
         if(documents == null || documents.isEmpty())
             return;
@@ -114,6 +131,7 @@ public class Translator {
         System.out.println("translating");
         String directory = "/Users/admin/tdb" ;
         Dataset ds = TDBFactory.createDataset(directory) ;
+
         Model model = ds.getNamedModel(modelo) ;
 
         int i = 0;
