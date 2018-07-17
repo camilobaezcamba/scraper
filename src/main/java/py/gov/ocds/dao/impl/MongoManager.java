@@ -83,6 +83,13 @@ public class MongoManager {
             return collection.find().skip(offset).limit(limit);
     }
 
+    public long getCount(Bson filter){
+        if(filter != null)
+            return collection.count(filter);
+        else
+            return collection.count();
+    }
+
     public Document get(String id){
         return collection.find(eq("_id", id)).first();
     }
@@ -91,5 +98,12 @@ public class MongoManager {
     public void destroy(){
         System.out.println("cerrando conexion");
         mongo.close();
+    }
+
+    public void setTDBFalse(){
+        Bson filter = new Document("tdb", true);
+        Bson newValue = new Document().append("tdb", false);
+        Bson updateOperationDocument = new Document("$set", newValue);
+        collection.updateMany(filter, updateOperationDocument);
     }
 }

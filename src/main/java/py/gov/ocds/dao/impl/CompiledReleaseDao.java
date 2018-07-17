@@ -77,6 +77,11 @@ public class CompiledReleaseDao implements Dao {
         return manager.getPaginado(offset, limit, filter).into(new ArrayList<>());
     }
 
+    public long getCount(MongoManager mongoManager, Bson filter){
+        MongoManager manager = mongoManager != null? mongoManager: this.mongoManager;
+        return manager.getCount(filter);
+    }
+
     public Document get(String id){
         return mongoManager.get(id);
     }

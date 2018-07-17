@@ -12,16 +12,50 @@ import py.gov.ocds.scraper.Scraper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import static com.mongodb.client.model.Filters.ne;
 
 public class Main {
     public static void main(String[] args) throws InterruptedException, IOException {
         //translatToTDB("licitaciones");
+
         Translator translator = new Translator();
-        //translator.load("licitaciones");
+        //translator.count("proveedores");
+        //translator.query("licitaciones", "SELECT * { ?s ?p ?o } limit 1");
         //translator.borrarModelo("licitaciones");
-        translator.borrarModelo("licitaciones");
+        //translator.borrarModelo("licitaciones");
+        //setTDBFalse();
+
+        System.out.println("1) Generar tdb licitaciones");
+        System.out.println("2) Generar tdb proveedores");
+        System.out.println("3) Contar licitaciones");
+        System.out.println("4) Contar proveedores");
+        System.out.println("5) Setear tdb = false en mongo licitaciones");
+
+        Scanner in = new Scanner(System.in);
+        int opcion = in.nextInt();
+        switch (opcion){
+            case 1:
+                System.out.println("Generando/Actualizando tdb de licitaciones...");
+                translatToTDB("licitaciones");
+                break;
+            case 2:
+                System.out.println("Generando/Actualizando tdb de proveedores...");
+                translatToTDB("proveedores");
+                break;
+            case 3:
+                translator.count("licitaciones");
+                break;
+            case 4:
+                translator.count("proveedores");
+                break;
+            case 5:
+                setTDBFalse();
+                break;
+            default:
+                System.out.println("Terminado");
+        }
     }
 
     public void scrapping() throws InterruptedException {
@@ -61,24 +95,31 @@ public class Main {
             CompiledReleaseDao dao = new CompiledReleaseDao();
 
             MongoManager mongoManager = new MongoManager("opendata", "ocdsContext");
+            long total = dao.getCount(mongoManager, ne("tdb", true));
+            int limit = 1000;
 
-            List<Document> documentos = dao.getPaginado(mongoManager, 0,491, ne("tdb", true));
-            List<Document> documentosFinales = new ArrayList<>();
+            while(total > 0){
+                System.out.println("------- " + total);
+                total = total - limit;
 
-            for(Document doc : documentos){
-                Document compiledRelease = (Document) doc.get("compiledRelease");
-                documentosFinales.add(compiledRelease);
-            }
-            translator.translateToTDB(documentosFinales, "licitaciones");
-            translator.load("licitaciones");
-            for(Document doc : documentos){
-                Document compiledRelease = (Document) doc.get("compiledRelease");
-                dao.agregarTDB(mongoManager, doc.getString("_id"), compiledRelease.toJson());
+                List<Document> documentos = dao.getPaginado(mongoManager, 0,limit, ne("tdb", true));
+                List<Document> documentosFinales = new ArrayList<>();
+
+                for(Document doc : documentos){
+                    Document compiledRelease = (Document) doc.get("compiledRelease");
+                    documentosFinales.add(compiledRelease);
+                }
+                translator.translateToTDB(documentosFinales, entidad);
+                //translator.load("licitaciones");
+                for(Document doc : documentos){
+                    Document compiledRelease = (Document) doc.get("compiledRelease");
+                    dao.agregarTDB(mongoManager, doc.getString("_id"), compiledRelease.toJson());
+                }
             }
 
         } else {
             ProveedoresDao proveedoresDao = new ProveedoresDao();
-            List<Document> proveedores = proveedoresDao.getPaginado(1,26252, null);
+            List<Document> proveedores = proveedoresDao.getPaginado(0,26252, null);
             List<Document> proveedoresFinales = new ArrayList<>();
 
             for(Document doc : proveedores){
@@ -88,13 +129,18 @@ public class Main {
             for(Document proveedor: proveedoresFinales) {
                 proveedor.put("@context", "http://girolabs.com.py/ocds/proveedor.json");
             }
-            translator.translateToTDB(proveedoresFinales, "proveedores");
-            translator.load("proveedores");
+            translator.translateToTDB(proveedoresFinales, entidad);
+            //translator.count("proveedores");
 
             for(Document doc : proveedores){
                 Document proveedor = (Document) doc.get("proveedor");
                 proveedoresDao.agregarTDB(doc.getString("_id"), proveedor.toJson());
             }
         }
+    }
+
+    private static void setTDBFalse(){
+        MongoManager mongoManager = new MongoManager("opendata", "ocdsContext");
+        mongoManager.setTDBFalse();
     }
 }

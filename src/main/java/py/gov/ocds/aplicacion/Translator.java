@@ -25,6 +25,8 @@ public class Translator {
     private ObjectMapper mapper;
     private static Codec<Document> DOCUMENT_CODEC = new DocumentCodec();
 
+    private static final String PREFIX = "http://example.org/";
+
     public Translator(){
         mapper = new ObjectMapper();
         SimpleModule module = new SimpleModule();
@@ -89,36 +91,43 @@ public class Translator {
         }
     }
 
-    public void load(String modelo) throws JsonProcessingException {
-        String directory = "/Users/admin/tdb" ;
+    public void count(String modelo) throws JsonProcessingException {
+        String directory = "/Users/admin/tdb_" + modelo ;
         Dataset ds = TDBFactory.createDataset(directory) ;
-        Model model = ds.getNamedModel(modelo) ;
-        String sparqlQueryString = "SELECT * { ?s ?p ?o }" ;
-        ds.addNamedModel("http://example.orgs/"+modelo, model);
+        Model model = ds.getNamedModel(PREFIX + modelo) ;
+        System.err.printf("Model size is: %s\n", model.size());
+        ds.close();
+    }
+
+    public void query(String modelo, String sparqlQueryString) throws JsonProcessingException {
+        String directory = "/Users/admin/tdb_" + modelo ;
+        Dataset ds = TDBFactory.createDataset(directory) ;
+        Model model = ds.getNamedModel(PREFIX + modelo) ;
+        //ds.addNamedModel("http://example.orgs/"+modelo, model);
 
         Query query = QueryFactory.create(sparqlQueryString) ;
         QueryExecution qexec = QueryExecutionFactory.create(query, model);
 
-        //ResultSet results = qexec.execSelect() ;
-        //ResultSetFormatter.out(results) ;
+        ResultSet results = qexec.execSelect() ;
+        ResultSetFormatter.out(results) ;
 
         qexec.close();
-        System.err.printf("Model size is: %s\n", model.size());
+        //System.err.printf("Model size is: %s\n", model.size());
 
         ds.close();
     }
 
     public void changeName(String modelo) throws JsonProcessingException {
-        String directory = "/Users/admin/tdb" ;
+        String directory = "/Users/admin/tdb_" + modelo ;
         Dataset ds = TDBFactory.createDataset(directory) ;
         Model model = ds.getNamedModel(modelo) ;
-        ds.addNamedModel("http://example.org/" + modelo, model);
+        ds.addNamedModel(PREFIX + modelo, model);
         ds.close();
         System.out.println("Hecho");
     }
 
     public void borrarModelo(String modelo) throws JsonProcessingException {
-        String directory = "/Users/admin/tdb" ;
+        String directory = "/Users/admin/tdb_" + modelo ;
         Dataset ds = TDBFactory.createDataset(directory) ;
         ds.removeNamedModel(modelo);
         ds.close();
@@ -129,10 +138,10 @@ public class Translator {
             return;
 
         System.out.println("translating");
-        String directory = "/Users/admin/tdb" ;
+        String directory = "/Users/admin/tdb_" + modelo ;
         Dataset ds = TDBFactory.createDataset(directory) ;
 
-        Model model = ds.getNamedModel(modelo) ;
+        Model model = ds.getNamedModel(PREFIX + modelo) ;
 
         int i = 0;
         for(Document document: documents){
