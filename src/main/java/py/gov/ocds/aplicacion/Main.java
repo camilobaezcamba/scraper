@@ -96,11 +96,15 @@ public class Main {
 
             MongoManager mongoManager = new MongoManager("opendata", "ocdsContext");
             long total = dao.getCount(mongoManager, ne("tdb", true));
-            int limit = 1000;
+            //long total = 100;
 
-            while(total > 0){
-                System.out.println("------- " + total);
-                total = total - limit;
+            long actual = total;
+            int limit = 10;
+
+            while(actual > 0){
+                progressPercentage(((Long)(total - actual)).intValue(), ((Long)total).intValue());
+
+                actual = actual - limit;
 
                 List<Document> documentos = dao.getPaginado(mongoManager, 0,limit, ne("tdb", true));
                 List<Document> documentosFinales = new ArrayList<>();
@@ -116,6 +120,8 @@ public class Main {
                     dao.agregarTDB(mongoManager, doc.getString("_id"), compiledRelease.toJson());
                 }
             }
+            progressPercentage(((Long)total).intValue(), ((Long)total).intValue());
+
 
         } else {
             ProveedoresDao proveedoresDao = new ProveedoresDao();
@@ -142,5 +148,26 @@ public class Main {
     private static void setTDBFalse(){
         MongoManager mongoManager = new MongoManager("opendata", "ocdsContext");
         mongoManager.setTDBFalse();
+    }
+
+    private static void progressPercentage(int remain, int total) {
+        if (remain > total) {
+            throw new IllegalArgumentException();
+        }
+        int maxBareSize = 100; // 10unit for 100%
+        int remainProcent = ((100 * remain) / total);
+        char defaultChar = '-';
+        String icon = "*";
+        String bare = new String(new char[maxBareSize]).replace('\0', defaultChar) + "]";
+        StringBuilder bareDone = new StringBuilder();
+        bareDone.append("[");
+        for (int i = 0; i < remainProcent; i++) {
+            bareDone.append(icon);
+        }
+        String bareRemain = bare.substring(remainProcent, bare.length());
+        System.out.print("\r" + bareDone + bareRemain + " " + remainProcent + "%" + " Faltan " + (total - remain));
+        if (remain == total) {
+            System.out.print("\n");
+        }
     }
 }

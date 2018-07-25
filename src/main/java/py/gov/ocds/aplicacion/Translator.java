@@ -6,15 +6,12 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.tdb.TDBFactory;
-import org.apache.jena.tdb.TDBLoader;
 import org.bson.Document;
 import org.bson.codecs.Codec;
 import org.bson.codecs.DocumentCodec;
 import org.json.JSONObject;
 
-import javax.print.Doc;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -94,7 +91,8 @@ public class Translator {
     public void count(String modelo) throws JsonProcessingException {
         String directory = "/Users/admin/tdb_" + modelo ;
         Dataset ds = TDBFactory.createDataset(directory) ;
-        Model model = ds.getNamedModel(PREFIX + modelo) ;
+        //Model model = ds.getNamedModel(PREFIX + modelo) ;
+        Model model = ds.getDefaultModel();
         System.err.printf("Model size is: %s\n", model.size());
         ds.close();
     }
@@ -102,7 +100,8 @@ public class Translator {
     public void query(String modelo, String sparqlQueryString) throws JsonProcessingException {
         String directory = "/Users/admin/tdb_" + modelo ;
         Dataset ds = TDBFactory.createDataset(directory) ;
-        Model model = ds.getNamedModel(PREFIX + modelo) ;
+        //Model model = ds.getNamedModel(PREFIX + modelo) ;
+        Model model = ds.getDefaultModel();
         //ds.addNamedModel("http://example.orgs/"+modelo, model);
 
         Query query = QueryFactory.create(sparqlQueryString) ;
@@ -137,12 +136,11 @@ public class Translator {
         if(documents == null || documents.isEmpty())
             return;
 
-        System.out.println("translating");
         String directory = "/Users/admin/tdb_" + modelo ;
         Dataset ds = TDBFactory.createDataset(directory) ;
 
-        Model model = ds.getNamedModel(PREFIX + modelo) ;
-
+        //Model model = ds.getNamedModel(PREFIX + modelo) ;
+        Model model = ds.getDefaultModel();
         int i = 0;
         for(Document document: documents){
             i++;
